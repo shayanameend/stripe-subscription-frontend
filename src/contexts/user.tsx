@@ -10,8 +10,8 @@ export interface User {
 	email: string;
 	role: "USER" | "ADMIN";
 	tier: "FREE" | "PRO" | "PREMIUM";
-	totalStorage: number;
-	usedStorage: number;
+	totalStorage: string;
+	usedStorage: string;
 	isVerified: boolean;
 	updatedAt: Date;
 }
@@ -71,7 +71,16 @@ export function UserProvider({ children }: Readonly<PropsWithChildren>) {
 				},
 			);
 
-			setUser(response.data.data.user);
+			setUser({
+				id: response.data.data.user.id,
+				email: response.data.data.user.email,
+				role: response.data.data.user.role,
+				tier: response.data.data.user.tier,
+				totalStorage: formatFileSize(response.data.data.user.totalStorage),
+				usedStorage: formatFileSize(response.data.data.user.usedStorage),
+				isVerified: response.data.data.user.isVerified,
+				updatedAt: new Date(response.data.data.user.updatedAt),
+			});
 			setToken(response.data.data.token);
 		})();
 	}, []);
@@ -79,11 +88,7 @@ export function UserProvider({ children }: Readonly<PropsWithChildren>) {
 	return (
 		<UserContext.Provider
 			value={{
-				user: {
-					...user,
-					totalStorage: formatFileSize(user?.totalStorage || 0),
-					usedStorage: formatFileSize(user?.usedStorage || 0),
-				},
+				user,
 				token,
 			}}
 		>
