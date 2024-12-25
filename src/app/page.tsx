@@ -1,34 +1,13 @@
 "use client";
 
-import { type Stripe, loadStripe } from "@stripe/stripe-js";
 import axios from "axios";
-import { useEffect, useState } from "react";
+
+import { useUserContext } from "~/contexts/user";
 
 export default function Home() {
-	const token =
-		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3NWZhNDg2NzMzMjRkZGFjYzRmNWQ4MiIsImVtYWlsIjoiYUB5b3BtYWlsLmNvbSIsInJvbGUiOiJVU0VSIiwidGllciI6IkZSRUUiLCJyZW1haW5pbmdTdG9yYWdlIjoyNjg0MzU0NTYwMCwiaXNWZXJpZmllZCI6dHJ1ZSwidXBkYXRlZEF0IjoiMjAyNC0xMi0xNlQwMzo1NDo0Ni40ODdaIiwiaWF0IjoxNzM0MzIxMzAzLCJleHAiOjE3MzQ5MjYxMDN9.SkIlwKrjtK9nyuyeOnYK8QVrevk4-bf2Jo-iemhLc_k";
-
-	const [stripe, setStripe] = useState<Stripe | null>(null);
-
-	useEffect(() => {
-		(async () => {
-			if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-				throw new Error("Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
-			}
-
-			const stripeInstance = await loadStripe(
-				process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-			);
-			setStripe(stripeInstance);
-		})();
-	}, []);
+	const { user, token } = useUserContext();
 
 	const subscribeClickHandler = async (tier: "PRO" | "PREMIUM") => {
-		if (!stripe) {
-			console.error("Stripe not initialized");
-			return;
-		}
-
 		try {
 			const response = await axios.post(
 				`http://localhost:8080/subscriptions/checkout?tier=${tier}`,
@@ -40,15 +19,11 @@ export default function Home() {
 				},
 			);
 
-			const sessionId = response.data.data.sessionId;
+			const sessionUrl = response.data.data.url;
 
-			console.log("Redirecting to checkout:", sessionId);
+			console.log("Redirecting to checkout:", sessionUrl);
 
-			const { error } = await stripe.redirectToCheckout({ sessionId });
-
-			if (error) {
-				console.error("Stripe Checkout Error:", error.message);
-			}
+			window.location.href = sessionUrl;
 		} catch (error) {
 			console.error("Failed to create checkout session:", error);
 		}
@@ -80,48 +55,62 @@ export default function Home() {
 		<main className="h-screen flex justify-center items-center">
 			<section>
 				<h2>Stripe Subscriptions</h2>
-				<article>
-					<h3>Pro Plan</h3>
-					<div className="flex justify-between">
-						<button
-							type="button"
-							onClick={() => {
-								subscribeClickHandler("PRO");
-							}}
-						>
-							Subscribe
-						</button>
-						<button
-							type="button"
-							onClick={() => {
-								portalClickHandler();
-							}}
-						>
-							Portal
-						</button>
-					</div>
-				</article>
-				<article>
-					<h3>Premium Plan</h3>
-					<div className="flex justify-between">
-						<button
-							type="button"
-							onClick={() => {
-								subscribeClickHandler("PREMIUM");
-							}}
-						>
-							Subscribe
-						</button>
+				<p>
+					User is on{" "}
+					<span className="capitalize">{user?.tier?.toLowerCase()}</span> Plan
+				</p>
+				<p>
+					Email: <span>{user?.email}</span>
+				</p>
+				<p>
+					Total Storage:{" "}
+					{user?.totalStorage && <span>{user.totalStorage}</span>}
+				</p>
+				<p>
+					Used Storage: <span>{user?.usedStorage}</span>
+				</p>
+				{user?.tier !== "FREE" && (
+					<article>
 						<button
 							type="button"
 							onClick={() => {
 								portalClickHandler();
 							}}
 						>
-							Portal
+							Go to Portal
 						</button>
-					</div>
-				</article>
+					</article>
+				)}
+				{user?.tier === "FREE" && (
+					<>
+						<article>
+							<h3>Pro Plan</h3>
+							<div>
+								<button
+									type="button"
+									onClick={() => {
+										subscribeClickHandler("PRO");
+									}}
+								>
+									Subscribe
+								</button>
+							</div>
+						</article>
+						<article>
+							<h3>Premium Plan</h3>
+							<div>
+								<button
+									type="button"
+									onClick={() => {
+										subscribeClickHandler("PREMIUM");
+									}}
+								>
+									Subscribe
+								</button>
+							</div>
+						</article>
+					</>
+				)}
 			</section>
 		</main>
 	);

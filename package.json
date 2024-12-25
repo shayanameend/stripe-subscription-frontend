@@ -9,7 +9,6 @@
 		"start": "next start"
 	},
 	"dependencies": {
-		"@stripe/stripe-js": "^5.3.0",
 		"axios": "^1.7.9",
 		"next": "15.1.0",
 		"react": "^19.0.0",
